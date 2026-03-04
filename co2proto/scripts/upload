@@ -1,0 +1,20 @@
+#!/bin/sh
+
+set -o pipefail -o errexit -o nounset
+
+cd "$(dirname "$0")/.."
+
+
+device=/dev/ttyACM*
+if [ $device = "/dev/ttyACM*" ]; then
+  device=/dev/ttyUSB*
+fi
+
+#fqbn=arduino:avr:nano:cpu=atmega328old
+fqbn=arduino:avr:nano
+#fqbn=arduino:avr:pro
+
+echo $device
+
+arduino-cli upload \
+  -p $device --fqbn $fqbn --verbose

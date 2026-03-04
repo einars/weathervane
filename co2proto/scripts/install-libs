@@ -1,0 +1,6 @@
+#!/bin/sh
+
+set -e
+
+arduino-cli lib install "Sensirion i2c SCD4x"
+arduino-cli lib install "Servo"
