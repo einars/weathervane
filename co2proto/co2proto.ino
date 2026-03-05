@@ -17,27 +17,20 @@ const uint8_t InfoLed = 13; // built-in
 // 2: slikts līmenis, >= 1400
 uint8_t overall_co2_level = 0;
 
+uint8_t co2_override = 0;
+unsigned long co2_override_until = 0;
+
+
 SensirionI2cScd4x sensor;
 Servo servo;
-
-void blink_powerup() {
-  digitalWrite(InfoLed, 1);
-  delay(50);
-  digitalWrite(InfoLed, 0);
-  delay(50);
-  digitalWrite(InfoLed, 1);
-  delay(50);
-  digitalWrite(InfoLed, 0);
-  delay(50);
-  digitalWrite(InfoLed, 1);
-  delay(100);
-  digitalWrite(InfoLed, 0);
-  delay(50);
-}
 
 bool initialize_sensor()
 {
   int16_t error;
+
+  overall_co2_level = 0;
+  co2_override = 0;
+  co2_override_until = 0;
 
 
   sensor.begin(Wire, SCD41_I2C_ADDR_62);
@@ -46,29 +39,29 @@ bool initialize_sensor()
     // Ensure sensor is in clean state
   error = sensor.wakeUp();
   if (error != 0) {
-    text1("err: wakeup");
+    text0("err: wakeup");
     return false;
   }
 
   error = sensor.stopPeriodicMeasurement();
   if (error != 0) {
-    text1("err: stop");
+    text0("err: stop");
     return false;
   }
 
   error = sensor.reinit();
   if (error != 0) {
-    text1("err: reinit");
+    text0("err: reinit");
     return false;
   }
 
   error = sensor.startPeriodicMeasurement();
   if (error != 0) {
-    text1("err: startPeriodic");
+    text0("err: startPeriodic");
     return false;
   }
 
-  text1("Sensor ready");
+  text0("Sensor ready");
 
   return true;
 }
@@ -87,11 +80,9 @@ void setup () {
 
   pinMode(InfoLed, OUTPUT);
 
-  blink_powerup();
-
   ssd1306_init();
 
-  text0("Cesis+Daugavpils");
+  text0("Booting");
   text1("");
   text2("");
   text3("");
@@ -99,9 +90,6 @@ void setup () {
   initialize_sensor();
 
 }
-
-uint8_t co2_override = 0;
-unsigned long co2_override_until = 0;
 
 
 bool update_measure ()
@@ -120,7 +108,7 @@ bool update_measure ()
   uint16_t co2 = 0;
 
   if (0 != sensor.getDataReadyStatus(data_ready)) {
-    text1("err: getdataready");
+    text0("err: getdataready");
     return false;
   }
   if ( ! data_ready) return false;
@@ -128,7 +116,7 @@ bool update_measure ()
   digitalWrite(InfoLed, 1);
 
   if (0 != sensor.readMeasurement(co2, temperature, rel_humidity)) {
-    text1("err: read");
+    text0("err: read");
     return false;
   }
 
@@ -140,6 +128,7 @@ bool update_measure ()
     co2,
     (int)temperature,
     (int)((temperature - (int)temperature) * 10));
+  text0("");
   text2(buf);
 
 
@@ -204,7 +193,9 @@ void loop() {
     co2_override_until = millis() + 5000; // 5s
   }
   if ( ! digitalRead(Button3)) {
-    text3("btn3 unused");
+    text2("reboot sensor");
+    text3("");
+    initialize_sensor();
     // co2_override = 3;
     // co2_override_until = millis() + 5000; // 5s
   }
