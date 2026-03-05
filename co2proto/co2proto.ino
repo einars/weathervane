@@ -13,9 +13,8 @@ const uint8_t ServoMotor = 9;
 const uint8_t InfoLed = 13; // built-in
 
 // 0: nav datu
-// 1: lielisks līmenis, < 800
-// 2: neitrāls līmenis, < 1300
-// 3: slikts līmenis, >= 1300
+// 1: labs līmenis, < 1400
+// 2: slikts līmenis, >= 1400
 uint8_t overall_co2_level = 0;
 
 SensirionI2cScd4x sensor;
@@ -144,19 +143,28 @@ bool update_measure ()
   text2(buf);
 
 
-  if (co2 < 700) {
-    overall_co2_level = 1;
-  } else if (co2 < 1300) {
-    overall_co2_level = 2;
-  } else {
-    overall_co2_level = 3;
+  // 1400 cutoff
+  // plusminus 50 hysteresis
+  int cutoff = 1400;
+  if (overall_co2_level == 1) {
+    cutoff += 50;
   }
+  if (overall_co2_level == 2) {
+    cutoff -= 50;
+  }
+
+  if (co2 < cutoff) {
+    overall_co2_level = 1;
+  } else {
+    overall_co2_level = 2;
+  }
+  
   return true;
 }
 
 
 
-uint8_t prev_level = 0;
+uint8_t prev_level = 255;
 
 void loop() {
   if ( ! update_measure()) {
@@ -178,13 +186,6 @@ void loop() {
       servo.detach();
       break;
     case 2:
-      text3("GOOD");
-      servo.attach(ServoMotor);
-      servo.write(90);
-      delay(400);
-      servo.detach();
-      break;
-    case 3:
       text3("BAD");
       servo.attach(ServoMotor);
       servo.write(0);
@@ -203,8 +204,9 @@ void loop() {
     co2_override_until = millis() + 5000; // 5s
   }
   if ( ! digitalRead(Button3)) {
-    co2_override = 3;
-    co2_override_until = millis() + 5000; // 5s
+    text3("btn3 unused");
+    // co2_override = 3;
+    // co2_override_until = millis() + 5000; // 5s
   }
   delay(100);
 }
